@@ -49,8 +49,31 @@ def decode(ids: list[int], vocab: dict[int, bytes]) -> str:
         result += vocab[token_id]
     return result.decode('utf8')
 
+def encode(text: str, merges: dict[tuple[int, int], int]) -> list[int]:
+    ids = list(text.encode("utf-8"))
+    while len(ids) >= 2:
+        counts = get_pair_counts(ids)
+        pair = min(counts, key=lambda p: merges.get(p, float("inf")))
+        
+        if pair not in merges:
+            break 
+        
+        new_id = merges[pair]
+        ids = merge(ids, pair, new_id)
+    return ids
+
 ids = list(text.encode("utf-8"))
 final_ids, merges = train_bpe(ids, num_merges=50)
 
 vocab = build_vocab(merges)
 print(decode(final_ids[:50], vocab))
+
+
+test = "Candide était heureux."
+encoded = encode(test, merges)
+print(encoded)
+
+decoded = decode(encoded, vocab)
+print(decoded)
+
+print(decoded == test)
